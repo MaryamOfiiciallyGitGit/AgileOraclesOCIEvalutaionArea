@@ -33,9 +33,8 @@ To submit your JAVA Maven project as a solution, please follow these steps:
 
 
 ### Step 5: Add Your Code
-- Create a package by your full name at src/main/java/com/agileoracleseval/slitheringeval/your_full_name
-- Paste your Java Project Folder in src/main/java/com/agileoracleseval/slitheringeval/your_full_name/YourProjectFolderNameHere
-- For Example: src/main/java/com/agileoracleseval/slitheringeval/syed_atyab/ProjectSlithering
+- Open the application folder (leave-portal-app) and NOT the root folder in IntelliJ or any other IDE. Name of Spring Boot Application Folder is leave-portal-app.
+- Implement and test your application.
 
 ### Step 6: Commit your changes
 - Run the following commands in order to commit your changes:
