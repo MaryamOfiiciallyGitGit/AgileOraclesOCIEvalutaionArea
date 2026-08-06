@@ -52,17 +52,17 @@ leave-portal-app/
 
 All configuration is externalized via environment variables. Set these before running the application:
 
-| Variable | Description | Required |
-|---|---|---|
-| `GOOGLE_CLIENT_ID` | OAuth 2.0 Client ID from Google Cloud Console | Yes |
-| `GOOGLE_CLIENT_SECRET` | OAuth 2.0 Client Secret from Google Cloud Console | Yes |
-| `OCI_REGION` | OCI region identifier (e.g. `us-ashburn-1`) | Yes |
-| `OCI_NAMESPACE` | OCI Object Storage namespace | Yes |
-| `OCI_BUCKET_NAME` | Target bucket name | Yes |
-| `OCI_CONFIG_FILE` | Absolute path to the OCI SDK `config` file | Yes |
-| `OCI_PROFILE` | Profile name inside the OCI config file | No (defaults to `DEFAULT`) |
-| `GEMINI_API_KEY` | Gemini API key (only needed for PDF uploads) | Only for PDF support |
-| `SERVER_PORT` | Port the application listens on | No (defaults to `8080`) |
+| Variable | Description |
+|---|---|
+| `GOOGLE_CLIENT_ID` | OAuth 2.0 Client ID from Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | OAuth 2.0 Client Secret from Google Cloud Console |
+| `OCI_REGION` | OCI region identifier (e.g. `us-ashburn-1`) |
+| `OCI_NAMESPACE` | OCI Object Storage namespace |
+| `OCI_BUCKET_NAME` | Target bucket name |
+| `OCI_CONFIG_FILE` | Absolute path to the OCI SDK `config` file |
+| `OCI_PROFILE` | Profile name inside the OCI config file (defaults to `DEFAULT`) |
+| `GEMINI_API_KEY` | Gemini API key, only needed for PDF uploads |
+| `SERVER_PORT` | Port the application listens on (defaults to `8080`) |
 
 See `application.properties.example` in this repository for the exact property mapping.
 
@@ -121,7 +121,3 @@ http://localhost:8080/test.html
 ```
 
 Sample leave request files for testing are provided in the `sample-files/` folder.
-
-## Notes for Deployment (Part 2)
-
-All configuration is environment-variable driven, so no code changes should be required when deploying to a remote OCI compute instance — only the environment variables need to be reconfigured for the target environment (paths, region, port, etc.).
