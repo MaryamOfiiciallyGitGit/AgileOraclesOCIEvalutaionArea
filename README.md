@@ -9,10 +9,10 @@ A minimal HTML upload form is included at `src/main/resources/static/test.html`.
 ```
 http://localhost:8080/test.html
 ```
+<img src="test-page-screenshot.png" width="360" alt="Leave Portal upload page">
 
 Sample leave request files for testing are provided in the `sample-files/` folder.
 
-<img src="test-page-screenshot.png" width="360" alt="Leave Portal upload page">
 
 ## Features
 
