@@ -1,62 +1,127 @@
-## Submission Instructions
+# Intelligent Leave Request Application
 
-To submit your JAVA Maven project as a solution, please follow these steps:
+A Spring Boot application that accepts employee leave request documents (`.txt` and `.pdf`), automatically categorizes the leave type, stores the uploaded files in OCI Object Storage, and authenticates users using OAuth 2.0 (Google).
 
-### Step 1: Install git on your PC
-- Install "git" as shown in this tutorial: [How to install git](https://youtu.be/iYkLrXobBbA?si=_l0haibv_X9NpIjJ)
-- Open command prompt and run
-  ```bash
-  git version
-  ```
-- If you see the version, then git is successfully installed.
+## Features
 
-### Step 2: Fork the Repository
-- Navigate to [this repository](https://github.com/CodelineAtyab/AgileOraclesOCIEvalutaionArea) provided by Codeline.
-- Click on the "Fork" button at the top-right corner of the page to create a copy of the repository under your own GitHub account.
+- **Secure REST API** — protected by Spring Security with OAuth 2.0 (Google Login)
+- **File upload** — accepts `.txt` and `.pdf` leave request documents
+- **Automatic categorization**
+  - `.txt` files → keyword-based rule matching
+  - `.pdf` files → text extraction (Apache PDFBox) + classification via Gemini Flash LLM (bonus feature)
+- **Cloud storage** — every uploaded file is stored in OCI Object Storage; the response includes the generated object name and object ID
+- **Fully externalized configuration** — all environment-specific values (credentials, region, bucket, port) are read from environment variables, with no secrets committed to source control
 
-### Step 3: Clone the Forked Repository
-- Open your terminal or command prompt.
-- Clone the forked repository to your local machine using the following command:
-  ```bash
-  git clone https://github.com/your-username/repo-name.git
-  ```
+## Tech Stack
 
-### Step 4: Create a new branch
-- Navigate to the cloned repository directory
-  ```bash
-  cd repo-name
-  ```
-- Create a new branch for your code submissions (Replace your-name with your name in your-name-submission-branch):
-  ```bash
-  git checkout -b your-name-submission-branch
-  ```
+| Component | Technology |
+|---|---|
+| Language / Runtime | Java 17 |
+| Framework | Spring Boot 4.1.0 (Spring Framework 7) |
+| Build tool | Gradle (wrapper included) |
+| Security | Spring Security + OAuth 2.0 (Google) |
+| Cloud Storage | Oracle Cloud Infrastructure (OCI) Object Storage |
+| PDF parsing | Apache PDFBox 3 |
+| LLM categorization | Google Gemini Flash API |
 
+## Project Structure
 
-### Step 5: Add Your Code
-- Open the application folder (leave-portal-app) and NOT the root folder in IntelliJ or any other IDE. Name of Spring Boot Application Folder is leave-portal-app.
-- Implement and test your application.
+```
+leave-portal-app/
+├── src/main/java/com/agileoracles/leave_portal_app/
+│   ├── config/          → SecurityConfig (OAuth2 setup)
+│   ├── controller/      → LeaveRequestController (REST endpoint)
+│   ├── dto/              → Response/result objects
+│   ├── service/          → Business logic (categorization, PDF extraction, OCI upload, LLM)
+│   └── LeavePortalAppApplication.java
+└── src/main/resources/
+    ├── application.properties
+    └── static/test.html  → simple browser-based upload form for manual testing
+```
 
-### Step 6: Commit your changes
-- Run the following commands in order to commit your changes:
-  ```bash
-  git add *
-  git commit -m "Saved the evaluation project"
-  ```
+## Prerequisites
 
-### Step 7: Push Your Branch to GitHub
-- Run the following commands to upload the changes to the forked github repository (Replace your-name with your name in your-name-submission-branch):
-  ```bash
-  git push origin your-name-submission-branch
-  ```
+- Java 17 (JDK)
+- An OCI account with:
+  - An Object Storage bucket
+  - An API signing key pair and a `config` file (see [OCI SDK docs](https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdkconfig.htm))
+- A Google Cloud project with an OAuth 2.0 Web Client (Client ID + Secret)
+- A Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey) (free tier, no billing required) — only needed for the PDF bonus feature
 
-### Step 8: Create a Pull Request
-- Go to your forked repository on GitHub.
-- You should see a prompt to create a pull request. Click on "Compare & pull request".
-- Provide a title and description for your pull request, then click "Create pull request".
+## Configuration
 
-### Step 9: Notify Codeline
-- Notify on slack that you have created a PR for your solution.
+All configuration is externalized via environment variables. Set these before running the application:
 
-## Note: If you face any issues in the process above, Please do the following:
-- Watch [this youtube tutorial](https://www.youtube.com/watch?v=a_FLqX3vGR4)
-- Contact Ikhlas or Atyab.
+| Variable | Description | Required |
+|---|---|---|
+| `GOOGLE_CLIENT_ID` | OAuth 2.0 Client ID from Google Cloud Console | Yes |
+| `GOOGLE_CLIENT_SECRET` | OAuth 2.0 Client Secret from Google Cloud Console | Yes |
+| `OCI_REGION` | OCI region identifier (e.g. `us-ashburn-1`) | Yes |
+| `OCI_NAMESPACE` | OCI Object Storage namespace | Yes |
+| `OCI_BUCKET_NAME` | Target bucket name | Yes |
+| `OCI_CONFIG_FILE` | Absolute path to the OCI SDK `config` file | Yes |
+| `OCI_PROFILE` | Profile name inside the OCI config file | No (defaults to `DEFAULT`) |
+| `GEMINI_API_KEY` | Gemini API key (only needed for PDF uploads) | Only for PDF support |
+| `SERVER_PORT` | Port the application listens on | No (defaults to `8080`) |
+
+See `application.properties.example` in this repository for the exact property mapping.
+
+## Running Locally
+
+```bash
+cd leave-portal-app
+./gradlew bootRun
+```
+
+The application starts on `http://localhost:8080` (or the port set via `SERVER_PORT`).
+
+## API
+
+### `POST /api/leave-requests/upload`
+
+Requires an authenticated session (Google login via `oauth2Login`). Accepts a `multipart/form-data` request with a single field:
+
+| Field | Type | Description |
+|---|---|---|
+| `file` | file | The leave request document (`.txt` or `.pdf`) |
+
+**Sample response:**
+
+```json
+{
+  "authenticatedUser": "user@example.com",
+  "fileName": "sample_sick_leave.txt",
+  "category": "Sick Leave",
+  "matchedReason": "Matched keywords: fever, doctor",
+  "uploadTimestamp": "2026-08-06T18:27:46.192",
+  "ociObjectName": "a645f752-...-sample_sick_leave.txt",
+  "ociObjectId": "541b8977-2190-4767-8fc5-4e9dd25bf6c0"
+}
+```
+
+### Leave Categories
+
+| Category | Keywords (for `.txt` files) |
+|---|---|
+| Sick Leave | doctor, hospital, fever, surgery |
+| Annual Leave | vacation, holiday, family |
+| Emergency Leave | emergency, urgent |
+| Maternity Leave | maternity, childbirth |
+| Unpaid Leave | unpaid |
+| Other | (no keywords matched) |
+
+For `.pdf` files, the category is instead determined by the Gemini Flash LLM based on the full extracted document text.
+
+## Manual Testing
+
+A minimal HTML upload form is included at `src/main/resources/static/test.html`. After signing in with Google in the same browser session, open:
+
+```
+http://localhost:8080/test.html
+```
+
+Sample leave request files for testing are provided in the `sample-files/` folder.
+
+## Notes for Deployment (Part 2)
+
+All configuration is environment-variable driven, so no code changes should be required when deploying to a remote OCI compute instance — only the environment variables need to be reconfigured for the target environment (paths, region, port, etc.).
