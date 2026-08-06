@@ -1,0 +1,18 @@
+spring.application.name=leave-portal-app
+
+# Google OAuth 2.0 credentials (create at console.cloud.google.com/auth/clients)
+spring.security.oauth2.client.registration.google.client-id=${GOOGLE_CLIENT_ID}
+spring.security.oauth2.client.registration.google.client-secret=${GOOGLE_CLIENT_SECRET}
+
+# OCI Object Storage configuration
+oci.region=${OCI_REGION:us-ashburn-1}
+oci.namespace=${OCI_NAMESPACE:your-namespace}
+oci.bucket-name=${OCI_BUCKET_NAME:your-bucket-name}
+oci.config-file=${OCI_CONFIG_FILE:/path/to/.oci/config}
+oci.profile=${OCI_PROFILE:DEFAULT}
+
+# Server
+server.port=${SERVER_PORT:8080}
+
+# Gemini API key (bonus PDF categorization feature), get a free key at aistudio.google.com/apikey
+gemini.api-key=${GEMINI_API_KEY}
