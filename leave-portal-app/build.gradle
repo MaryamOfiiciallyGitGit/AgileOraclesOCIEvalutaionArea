@@ -18,7 +18,10 @@ repositories {
 }
 
 dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-client'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'com.oracle.oci.sdk:oci-java-sdk-objectstorage:3.94.0'
+	implementation 'com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:3.94.0'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
