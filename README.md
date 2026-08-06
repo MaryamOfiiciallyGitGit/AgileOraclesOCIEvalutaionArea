@@ -2,6 +2,16 @@
 
 A Spring Boot application that accepts employee leave request documents (`.txt` and `.pdf`), automatically categorizes the leave type, stores the uploaded files in OCI Object Storage, and authenticates users using OAuth 2.0 (Google).
 
+## Manual Testing
+
+A minimal HTML upload form is included at `src/main/resources/static/test.html`. After signing in with Google in the same browser session, open:
+
+```
+http://localhost:8080/test.html
+```
+
+Sample leave request files for testing are provided in the `sample-files/` folder.
+
 ## Features
 
 - **Secure REST API** — protected by Spring Security with OAuth 2.0 (Google Login)
@@ -111,13 +121,3 @@ Requires an authenticated session (Google login via `oauth2Login`). Accepts a `m
 | Other | (no keywords matched) |
 
 For `.pdf` files, the category is instead determined by the Gemini Flash LLM based on the full extracted document text.
-
-## Manual Testing
-
-A minimal HTML upload form is included at `src/main/resources/static/test.html`. After signing in with Google in the same browser session, open:
-
-```
-http://localhost:8080/test.html
-```
-
-Sample leave request files for testing are provided in the `sample-files/` folder.

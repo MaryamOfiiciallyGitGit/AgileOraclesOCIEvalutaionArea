@@ -1,10 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Portal — Upload</title>
+    <style>
+        body {
+          font-family: -apple-system, Arial, sans-serif;
+          background: #F5F5F7;
+          display: flex;
+          justify-content: center;
+          padding-top: 60px;
+          color: #222;
+        }
+
+        .box {
+          background: #fff;
+          border: 1px solid #DDD;
+          border-radius: 8px;
+          padding: 28px;
+          width: 380px;
+        }
+
+        h2 {
+          margin-top: 0;
+        }
+
+        input[type="file"] {
+          margin: 16px 0;
+          width: 100%;
+        }
+
+        button {
+          padding: 10px 16px;
+          background: #DD6B98;
+          color: #fff;
+          border: none;
+          border-radius: 6px;
+          font-size: 14px;
+          cursor: pointer;
+        }
+
+        .illustration {
+          width: 100%;
+          margin-top: 20px;
+          border-radius: 6px;
+        }
+    </style>
+</head>
 <body>
-<h2>Test Leave Upload</h2>
-<form action="/api/leave-requests/upload" method="post" enctype="multipart/form-data">
-    <input type="file" name="file">
-    <button type="submit">Upload</button>
-</form>
+
+<div class="box">
+    <h2>Leave Portal</h2>
+
+    <form action="/api/leave-requests/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".txt,.pdf" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <img class="illustration" src="leave-illustration.png" alt="Leave application illustration">
+</div>
+
 </body>
 </html>
