@@ -4,7 +4,9 @@ import com.agileoracles.leave_portal_app.dto.CategorizationResult;
 import com.agileoracles.leave_portal_app.dto.LeaveRequestResponse;
 import com.agileoracles.leave_portal_app.dto.OciUploadResult;
 import com.agileoracles.leave_portal_app.service.LeaveCategorizationService;
+import com.agileoracles.leave_portal_app.service.LlmCategorizationService;
 import com.agileoracles.leave_portal_app.service.OciStorageService;
+import com.agileoracles.leave_portal_app.service.PdfTextExtractionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,11 +27,17 @@ public class LeaveRequestController {
 
     private final LeaveCategorizationService categorizationService;
     private final OciStorageService ociStorageService;
+    private final PdfTextExtractionService pdfTextExtractionService;
+    private final LlmCategorizationService llmCategorizationService;
 
     public LeaveRequestController(LeaveCategorizationService categorizationService,
-                                  OciStorageService ociStorageService) {
+                                  OciStorageService ociStorageService,
+                                  PdfTextExtractionService pdfTextExtractionService,
+                                  LlmCategorizationService llmCategorizationService) {
         this.categorizationService = categorizationService;
         this.ociStorageService = ociStorageService;
+        this.pdfTextExtractionService = pdfTextExtractionService;
+        this.llmCategorizationService = llmCategorizationService;
     }
 
     @PostMapping("/upload")
@@ -42,9 +50,12 @@ public class LeaveRequestController {
         }
 
         String fileName = file.getOriginalFilename();
-        if (fileName == null || !fileName.toLowerCase().endsWith(".txt")) {
+        boolean isPdf = fileName != null && fileName.toLowerCase().endsWith(".pdf");
+        boolean isTxt = fileName != null && fileName.toLowerCase().endsWith(".txt");
+
+        if (!isPdf && !isTxt) {
             return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                    .body("Unsupported file type. Only .txt is supported for now");
+                    .body("Unsupported file type. Only .txt and .pdf are supported");
         }
 
         byte[] fileBytes;
@@ -54,8 +65,19 @@ public class LeaveRequestController {
             return ResponseEntity.internalServerError().body("Failed to read file content");
         }
 
-        String content = new String(fileBytes, StandardCharsets.UTF_8);
-        CategorizationResult result = categorizationService.categorize(content);
+        CategorizationResult result;
+        try {
+            if (isPdf) {
+                String extractedText = pdfTextExtractionService.extractText(fileBytes);
+                String category = llmCategorizationService.categorize(extractedText);
+                result = new CategorizationResult(category, "Categorized by Gemini LLM based on document content");
+            } else {
+                String content = new String(fileBytes, StandardCharsets.UTF_8);
+                result = categorizationService.categorize(content);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Failed to categorize file: " + e.getMessage());
+        }
 
         OciUploadResult uploadResult;
         try {
