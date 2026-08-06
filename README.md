@@ -12,6 +12,8 @@ http://localhost:8080/test.html
 
 Sample leave request files for testing are provided in the `sample-files/` folder.
 
+<img src="test-page-screenshot.png" width="360" alt="Leave Portal upload page">
+
 ## Features
 
 - **Secure REST API** — protected by Spring Security with OAuth 2.0 (Google Login)
