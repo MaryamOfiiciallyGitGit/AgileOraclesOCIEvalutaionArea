@@ -1,5 +1,6 @@
 plugins {
 	id 'java'
+	id 'application'
 	id 'org.springframework.boot' version '4.1.0'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
@@ -13,11 +14,17 @@ java {
 	}
 }
 
+application {
+	mainClass = project.hasProperty('mainClass') ? project.getProperty('mainClass') : 'com.agileoracles.leave_portal_app.LeavePortalAppApplication'
+}
+
 repositories {
 	mavenCentral()
 }
 
 dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'com.oracle.database.jdbc:ojdbc11:23.26.2.0.0'
 	implementation 'org.apache.pdfbox:pdfbox:3.0.8'
 	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-client'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'

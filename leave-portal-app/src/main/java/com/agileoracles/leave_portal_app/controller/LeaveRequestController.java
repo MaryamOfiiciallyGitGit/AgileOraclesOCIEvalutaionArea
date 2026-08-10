@@ -1,16 +1,18 @@
 package com.agileoracles.leave_portal_app.controller;
 
-import com.agileoracles.leave_portal_app.dto.CategorizationResult;
-import com.agileoracles.leave_portal_app.dto.LeaveRequestResponse;
 import com.agileoracles.leave_portal_app.dto.OciUploadResult;
-import com.agileoracles.leave_portal_app.service.LeaveCategorizationService;
-import com.agileoracles.leave_portal_app.service.LlmCategorizationService;
+import com.agileoracles.leave_portal_app.entity.LeaveRequestRecord;
+import com.agileoracles.leave_portal_app.repository.LeaveRequestRepository;
 import com.agileoracles.leave_portal_app.service.OciStorageService;
 import com.agileoracles.leave_portal_app.service.PdfTextExtractionService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,24 +22,22 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/leave-requests")
 public class LeaveRequestController {
 
-    private final LeaveCategorizationService categorizationService;
     private final OciStorageService ociStorageService;
     private final PdfTextExtractionService pdfTextExtractionService;
-    private final LlmCategorizationService llmCategorizationService;
+    private final LeaveRequestRepository leaveRequestRepository;
 
-    public LeaveRequestController(LeaveCategorizationService categorizationService,
-                                  OciStorageService ociStorageService,
+    public LeaveRequestController(OciStorageService ociStorageService,
                                   PdfTextExtractionService pdfTextExtractionService,
-                                  LlmCategorizationService llmCategorizationService) {
-        this.categorizationService = categorizationService;
+                                  LeaveRequestRepository leaveRequestRepository) {
         this.ociStorageService = ociStorageService;
         this.pdfTextExtractionService = pdfTextExtractionService;
-        this.llmCategorizationService = llmCategorizationService;
+        this.leaveRequestRepository = leaveRequestRepository;
     }
 
     @PostMapping("/upload")
@@ -65,18 +65,13 @@ public class LeaveRequestController {
             return ResponseEntity.internalServerError().body("Failed to read file content");
         }
 
-        CategorizationResult result;
+        String reasonForLeave;
         try {
-            if (isPdf) {
-                String extractedText = pdfTextExtractionService.extractText(fileBytes);
-                String category = llmCategorizationService.categorize(extractedText);
-                result = new CategorizationResult(category, "Categorized by Gemini LLM based on document content");
-            } else {
-                String content = new String(fileBytes, StandardCharsets.UTF_8);
-                result = categorizationService.categorize(content);
-            }
+            reasonForLeave = isPdf
+                    ? pdfTextExtractionService.extractText(fileBytes)
+                    : new String(fileBytes, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Failed to categorize file: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Failed to read file content: " + e.getMessage());
         }
 
         OciUploadResult uploadResult;
@@ -89,16 +84,54 @@ public class LeaveRequestController {
 
         String authenticatedUser = (principal != null) ? principal.getAttribute("email") : "unknown";
 
-        LeaveRequestResponse response = new LeaveRequestResponse(
-                authenticatedUser,
-                fileName,
-                result.getCategory(),
-                result.getMatchedReason(),
-                LocalDateTime.now(),
-                uploadResult.getObjectName(),
-                uploadResult.getObjectId()
-        );
+        LeaveRequestRecord record = new LeaveRequestRecord();
+        record.setUserEmail(authenticatedUser);
+        record.setAttachedFilename(fileName);
+        record.setReasonForLeave(reasonForLeave);
+        record.setLeaveCategory(null);
+        record.setCreatedAt(LocalDateTime.now());
+        record.setOciObjectName(uploadResult.getObjectName());
+        record.setOciObjectId(uploadResult.getObjectId());
+        record.setOciBucketName(ociStorageService.getBucketName());
 
-        return ResponseEntity.ok(response);
+        LeaveRequestRecord saved = leaveRequestRepository.save(record);
+
+        return ResponseEntity.ok(saved);
+    }
+
+    @GetMapping("/files")
+    public ResponseEntity<?> listFiles(@AuthenticationPrincipal OAuth2User principal) {
+        String authenticatedUser = (principal != null) ? principal.getAttribute("email") : "unknown";
+        return ResponseEntity.ok(leaveRequestRepository.findByUserEmail(authenticatedUser));
+    }
+
+    @GetMapping("/download/{id}")
+    public ResponseEntity<?> downloadFile(@PathVariable Long id,
+                                          @AuthenticationPrincipal OAuth2User principal) {
+
+        String authenticatedUser = (principal != null) ? principal.getAttribute("email") : "unknown";
+
+        Optional<LeaveRequestRecord> recordOpt = leaveRequestRepository.findById(id);
+        if (recordOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        LeaveRequestRecord record = recordOpt.get();
+
+        if (!authenticatedUser.equals(record.getUserEmail())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have access to this file");
+        }
+
+        byte[] fileBytes;
+        try {
+            fileBytes = ociStorageService.downloadFile(record.getOciObjectName());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Failed to download file: " + e.getMessage());
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + record.getAttachedFilename() + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(fileBytes);
     }
 }
