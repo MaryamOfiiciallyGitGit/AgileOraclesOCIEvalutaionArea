@@ -33,6 +33,9 @@ public class OciStorageService {
     @Value("${oci.profile}")
     private String profile;
 
+    @Value("${oci.object-prefix:eta-maryam}")
+    private String objectPrefix;
+
     private ObjectStorageClient client;
 
     private synchronized ObjectStorageClient getClient() throws Exception {
@@ -50,7 +53,7 @@ public class OciStorageService {
 
     public OciUploadResult uploadFile(String originalFileName, byte[] fileBytes) throws Exception {
 
-        String objectName = UUID.randomUUID() + "-" + originalFileName;
+        String objectName = objectPrefix + "/" + UUID.randomUUID() + "-" + originalFileName;
 
         PutObjectRequest request = PutObjectRequest.builder()
                 .namespaceName(namespace)
