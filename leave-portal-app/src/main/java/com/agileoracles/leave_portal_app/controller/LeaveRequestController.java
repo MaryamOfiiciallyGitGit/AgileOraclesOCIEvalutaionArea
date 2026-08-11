@@ -131,7 +131,8 @@ public class LeaveRequestController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + record.getAttachedFilename() + "\"")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(record.getAttachedFilename().toLowerCase().endsWith(".pdf")
+                        ? MediaType.APPLICATION_PDF : MediaType.TEXT_PLAIN)
                 .body(fileBytes);
     }
 }
