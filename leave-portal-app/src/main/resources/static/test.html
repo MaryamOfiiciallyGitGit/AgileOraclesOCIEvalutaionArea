@@ -1,65 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leave Portal — Upload</title>
-    <style>
-        body {
-          font-family: -apple-system, Arial, sans-serif;
-          background: #F5F5F7;
-          display: flex;
-          justify-content: center;
-          padding-top: 60px;
-          color: #222;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leave Portal — Upload</title>
+<style>
+  body {
+    font-family: -apple-system, Arial, sans-serif;
+    background: #F5F5F7;
+    display: flex;
+    justify-content: center;
+    padding-top: 60px;
+    color: #222;
+  }
 
-        .box {
-          background: #fff;
-          border: 1px solid #DDD;
-          border-radius: 8px;
-          padding: 28px;
-          width: 380px;
-        }
+  .box {
+    background: #fff;
+    border: 1px solid #DDD;
+    border-radius: 8px;
+    padding: 28px;
+    width: 380px;
+  }
 
-        h2 {
-          margin-top: 0;
-        }
+  h2 {
+    margin-top: 0;
+  }
 
-        input[type="file"] {
-          margin: 16px 0;
-          width: 100%;
-        }
+  input[type="file"] {
+    margin: 16px 0;
+    width: 100%;
+  }
 
-        button {
-          padding: 10px 16px;
-          background: #DD6B98;
-          color: #fff;
-          border: none;
-          border-radius: 6px;
-          font-size: 14px;
-          cursor: pointer;
-        }
+  button {
+    padding: 10px 16px;
+    background: #DD6B98;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+  }
 
-        .illustration {
-          width: 100%;
-          margin-top: 20px;
-          border-radius: 6px;
-        }
-    </style>
+  button:disabled {
+    background: #F0B8CE;
+  }
+
+  .illustration {
+    width: 100%;
+    margin-top: 20px;
+    border-radius: 6px;
+  }
+
+  #successBox {
+    margin-top: 20px;
+    padding: 14px;
+    border-radius: 6px;
+    background: #E9F7EF;
+    color: #1E8E5A;
+    display: none;
+  }
+
+  #successBox.show {
+    display: block;
+  }
+
+  #successBox .title {
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  #viewDetailsBtn {
+    background: #1E8E5A;
+    margin-top: 4px;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  #errorBox {
+    margin-top: 20px;
+    padding: 14px;
+    border-radius: 6px;
+    background: #FDECEC;
+    color: #D64545;
+    display: none;
+    white-space: pre-wrap;
+    font-size: 13px;
+  }
+
+  #errorBox.show {
+    display: block;
+  }
+</style>
 </head>
 <body>
 
-<div class="box">
+  <div class="box">
     <h2>Leave Portal</h2>
 
-    <form action="/api/leave-requests/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".txt,.pdf" required>
-        <button type="submit">Upload</button>
+    <form id="uploadForm">
+      <input type="file" name="file" id="fileInput" accept=".txt,.pdf" required>
+      <button type="submit" id="submitBtn">Upload</button>
     </form>
 
+    <div id="successBox">
+      <div class="title">Upload Success :)</div>
+      <button id="viewDetailsBtn" type="button">View Details</button>
+    </div>
+
+    <div id="errorBox"></div>
+
     <img class="illustration" src="leave-illustration.png" alt="Leave application illustration">
-</div>
+  </div>
+
+<script>
+  const form = document.getElementById('uploadForm');
+  const fileInput = document.getElementById('fileInput');
+  const submitBtn = document.getElementById('submitBtn');
+  const successBox = document.getElementById('successBox');
+  const errorBox = document.getElementById('errorBox');
+  const viewDetailsBtn = document.getElementById('viewDetailsBtn');
+
+  let lastResultText = '';
+
+  viewDetailsBtn.addEventListener('click', () => {
+    const blob = new Blob([lastResultText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!fileInput.files[0]) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uploading...';
+    successBox.classList.remove('show');
+    errorBox.classList.remove('show');
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+      const response = await fetch('/api/leave-requests/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const text = await response.text();
+
+      if (response.ok) {
+        lastResultText = text;
+        successBox.classList.add('show');
+      } else {
+        errorBox.textContent = text || ('Error: ' + response.status);
+        errorBox.classList.add('show');
+      }
+    } catch (err) {
+      errorBox.textContent = 'Network error: ' + err.message;
+      errorBox.classList.add('show');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Upload';
+    }
+  });
+</script>
 
 </body>
 </html>
