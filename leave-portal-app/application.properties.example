@@ -1,18 +1,24 @@
-spring.application.name=leave-portal-app
+# Template configuration file — copy to application.properties and fill in
+# real values via environment variables. Do NOT commit real secrets.
 
-# Google OAuth 2.0 credentials (create at console.cloud.google.com/auth/clients)
+spring.application.name=leave-portal-app
 spring.security.oauth2.client.registration.google.client-id=${GOOGLE_CLIENT_ID}
 spring.security.oauth2.client.registration.google.client-secret=${GOOGLE_CLIENT_SECRET}
 
-# OCI Object Storage configuration
 oci.region=${OCI_REGION:us-ashburn-1}
-oci.namespace=${OCI_NAMESPACE:your-namespace}
-oci.bucket-name=${OCI_BUCKET_NAME:your-bucket-name}
-oci.config-file=${OCI_CONFIG_FILE:/path/to/.oci/config}
+oci.namespace=${OCI_NAMESPACE:your_oci_namespace}
+oci.bucket-name=${OCI_BUCKET_NAME:your_pair_bucket_name}
+oci.config-file=${OCI_CONFIG_FILE:/path/to/your/.oci/config}
 oci.profile=${OCI_PROFILE:DEFAULT}
 
-# Server
 server.port=${SERVER_PORT:8080}
 
-# Gemini API key (bonus PDF categorization feature), get a free key at aistudio.google.com/apikey
 gemini.api-key=${GEMINI_API_KEY}
+
+# Database connection — points to your pair's shared Oracle instance
+spring.datasource.url=jdbc:oracle:thin:@//${DB_HOST:localhost}:${DB_PORT:1521}/FREEPDB1
+spring.datasource.username=${DB_USERNAME:your_db_username}
+spring.datasource.password=${DB_PASSWORD}
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
