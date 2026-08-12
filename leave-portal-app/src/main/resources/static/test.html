@@ -3,14 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Leave Portal — Upload</title>
+<title>Leave Portal</title>
 <style>
   body {
     font-family: -apple-system, Arial, sans-serif;
     background: #F5F5F7;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     padding-top: 60px;
+    padding-bottom: 60px;
     color: #222;
   }
 
@@ -20,6 +22,7 @@
     border-radius: 8px;
     padding: 28px;
     width: 380px;
+    margin-bottom: 16px;
   }
 
   h2 {
@@ -31,7 +34,25 @@
     width: 100%;
   }
 
-  button {
+  input[type="text"] {
+    width: 100%;
+    padding: 9px 10px;
+    margin: 14px 0;
+    border: 1px solid #CCC;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+
+  select {
+    padding: 8px 10px;
+    border: 1px solid #CCC;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #fff;
+  }
+
+  button, .downloadBtn {
     padding: 10px 16px;
     background: #DD6B98;
     color: #fff;
@@ -39,6 +60,8 @@
     border-radius: 6px;
     font-size: 14px;
     cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
   }
 
   button:disabled {
@@ -90,43 +113,212 @@
   #errorBox.show {
     display: block;
   }
+
+  .filesHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  #refreshBtn {
+    font-size: 13px;
+    padding: 8px 14px;
+  }
+
+  .fileRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #EEE;
+  }
+
+  .fileRow:last-child {
+    border-bottom: none;
+  }
+
+  .fileName {
+    font-size: 14px;
+    font-weight: 500;
+    word-break: break-all;
+  }
+
+  .fileCategory {
+    font-size: 12px;
+    color: #777;
+    margin-top: 2px;
+  }
+
+  .fileMeta {
+    font-size: 11px;
+    color: #999;
+    margin-top: 4px;
+  }
+
+  .downloadBtn {
+    font-size: 12px;
+    padding: 6px 12px;
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+
+  .emptyMsg, .loadingMsg {
+    font-size: 13px;
+    color: #777;
+  }
 </style>
 </head>
 <body>
 
-  <div class="box">
-    <h2>Leave Portal</h2>
+  <div class="box" id="nameGateBox">
+    <h2>Welcome to the Leave Portal</h2>
+    <p style="font-size:14px;color:#555;margin:0;">Enter your name to continue</p>
+    <input type="text" id="nameInput" placeholder="Your name">
+    <button id="nameContinueBtn" type="button">Continue</button>
+  </div>
 
-    <form id="uploadForm">
-      <input type="file" name="file" id="fileInput" accept=".txt,.pdf" required>
-      <button type="submit" id="submitBtn">Upload</button>
-    </form>
+  <div id="portalContent" style="display:none;">
 
-    <div id="successBox">
-      <div class="title">Upload Success :)</div>
-      <button id="viewDetailsBtn" type="button">View Details</button>
+    <div class="box">
+      <h2 id="portalTitle">Leave Portal</h2>
+
+      <form id="uploadForm">
+        <input type="file" name="file" id="fileInput" accept=".txt,.pdf" required>
+        <button type="submit" id="submitBtn">Upload</button>
+      </form>
+
+      <div id="successBox">
+        <div class="title">Upload Success :)</div>
+        <button id="viewDetailsBtn" type="button">View Details</button>
+      </div>
+
+      <div id="errorBox"></div>
+
+      <img class="illustration" src="leave-illustration.png" alt="Leave application illustration">
     </div>
 
-    <div id="errorBox"></div>
+    <div class="box">
+      <div class="filesHeader">
+        <h2 style="margin:0;">Your Files</h2>
+      </div>
+      <div class="filesHeader">
+        <button id="refreshBtn" type="button">Refresh List</button>
+        <select id="categoryFilter">
+          <option value="">All Categories</option>
+          <option value="Pending">Pending</option>
+          <option value="Sick Leave">Sick Leave</option>
+          <option value="Annual Leave">Annual Leave</option>
+          <option value="Emergency Leave">Emergency Leave</option>
+          <option value="Maternity Leave">Maternity Leave</option>
+          <option value="Unpaid Leave">Unpaid Leave</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div id="filesList"><div class="loadingMsg">Loading...</div></div>
+    </div>
 
-    <img class="illustration" src="leave-illustration.png" alt="Leave application illustration">
   </div>
 
 <script>
+  const nameGateBox = document.getElementById('nameGateBox');
+  const nameInput = document.getElementById('nameInput');
+  const nameContinueBtn = document.getElementById('nameContinueBtn');
+  const portalContent = document.getElementById('portalContent');
+  const portalTitle = document.getElementById('portalTitle');
+
   const form = document.getElementById('uploadForm');
   const fileInput = document.getElementById('fileInput');
   const submitBtn = document.getElementById('submitBtn');
   const successBox = document.getElementById('successBox');
   const errorBox = document.getElementById('errorBox');
   const viewDetailsBtn = document.getElementById('viewDetailsBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const categoryFilter = document.getElementById('categoryFilter');
+  const filesListEl = document.getElementById('filesList');
 
   let lastResultText = '';
+  let allFiles = [];
+
+  function goToPortal() {
+    const name = nameInput.value.trim();
+    if (!name) {
+      nameInput.focus();
+      return;
+    }
+    portalTitle.textContent = name + ' Leave Portal';
+    nameGateBox.style.display = 'none';
+    portalContent.style.display = 'block';
+    loadFiles();
+  }
+
+  nameContinueBtn.addEventListener('click', goToPortal);
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') goToPortal();
+  });
 
   viewDetailsBtn.addEventListener('click', () => {
     const blob = new Blob([lastResultText], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
   });
+
+  async function loadFiles() {
+    filesListEl.innerHTML = '<div class="loadingMsg">Loading...</div>';
+    try {
+      const response = await fetch('/api/leave-requests/files');
+      allFiles = await response.json();
+      renderFiles();
+    } catch (err) {
+      filesListEl.innerHTML = '<div class="emptyMsg">Failed to load files.</div>';
+    }
+  }
+
+  function renderFiles() {
+    const selected = categoryFilter.value;
+    let files = Array.isArray(allFiles) ? allFiles : [];
+
+    if (selected === 'Pending') {
+      files = files.filter(f => !f.leaveCategory);
+    } else if (selected) {
+      files = files.filter(f => f.leaveCategory === selected);
+    }
+
+    if (files.length === 0) {
+      filesListEl.innerHTML = '<div class="emptyMsg">No files found.</div>';
+      return;
+    }
+
+    filesListEl.innerHTML = '';
+    files.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'fileRow';
+
+      const formattedDate = f.createdAt
+        ? new Date(f.createdAt).toLocaleString()
+        : 'Unknown date';
+
+      const info = document.createElement('div');
+      info.innerHTML =
+        '<div class="fileName">' + f.attachedFilename + '</div>' +
+        '<div class="fileCategory">' + (f.leaveCategory ? f.leaveCategory : 'Pending...') + '</div>' +
+        '<div class="fileMeta">' + formattedDate + '</div>';
+
+      const downloadLink = document.createElement('a');
+      downloadLink.className = 'downloadBtn';
+      downloadLink.href = '/api/leave-requests/download/' + f.id;
+      downloadLink.textContent = 'Download';
+
+      row.appendChild(info);
+      row.appendChild(downloadLink);
+      filesListEl.appendChild(row);
+    });
+  }
+
+  refreshBtn.addEventListener('click', loadFiles);
+  categoryFilter.addEventListener('change', renderFiles);
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -151,6 +343,7 @@
       if (response.ok) {
         lastResultText = text;
         successBox.classList.add('show');
+        loadFiles();
       } else {
         errorBox.textContent = text || ('Error: ' + response.status);
         errorBox.classList.add('show');
